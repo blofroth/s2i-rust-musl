@@ -1,11 +1,11 @@
 #!/bin/bash
 SOURCE=${1}
 BINARY_NAME=${2}
-
-ALPINE_VERSION=${ALPINE_VERSION:-latest}
+TOOLCHAIN=${3:-stable}
+ALPINE_VERSION=${4:-latest}
 
 s2i build ${SOURCE} \
-  blofroth/rust-s2i-musl-builder \
+  "blofroth/rust-s2i-musl-builder:${TOOLCHAIN}" \
   -e "RUST_BINARY=${BINARY_NAME}" \
   --exclude "" \
   --incremental \
@@ -13,6 +13,7 @@ s2i build ${SOURCE} \
 
 # secondary build as recommended by
 # https://github.com/openshift/source-to-image/issues/738#issuecomment-299505477
+# to get incremental build while using a runtime image
 s2i build ${SOURCE} \
   "rust-musl-${BINARY_NAME}-tmp" \
   --runtime-image "alpine:$ALPINE_VERSION" \

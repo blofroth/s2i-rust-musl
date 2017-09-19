@@ -29,14 +29,19 @@ This is the simple most basic use case.
 
 2. Build the Musl binary and set it up on a `alpine` image:
 
-       sh build.sh SOURCE BINARY_NAME
+       sh build.sh SOURCE BINARY_NAME [TOOLCHAIN=stable [ALPINE_VERSION=latest]]
 
-* `SOURCE` - a S2I source (e.g. Git url or local path to git repo)
+    * `SOURCE` - a S2I source (e.g. Git url or local path to git repo)
 
-* `BINARY_NAME` - assumed to be the name of the created binary, also passed with 
-    `--bin` to `cargo`
+    * `BINARY_NAME` - assumed to be the name of the created binary, also passed with 
+        `--bin` to `cargo`
 
-This should create two images:
+    * `TOOLCHAIN` - The Rust toolchain to use. Assumes the builder image exists in this version. Default `stable`.
+
+    * `ALPINE_VERSION` - The version of the `alpine` image used for the runtime image. Default `latest`.
+
+    This should create two images:
+
     * `rust-musl-${BINARY_NAME}-tmp`
         * temporary image based on the builder image, used for incremental builds
     * `rust-musl-${BINARY_NAME}`
@@ -63,9 +68,12 @@ Simply:
 
     * `sh build.sh SOURCE BINARY_NAME`
 
-## Where to go from here
+## Ideas going forward
 
-My plan is to soon provide an example project with some microservices based on Rocket.rs
+ * Make cargo options more configurable
+ * See if the incremental workflow can be improved
+ * See if there are any best practices for the runtime image that we should adapt to
+ * Provide an example project with some microservices based on Rocket.rs
 and deployable in OpenShift. Stay tuned... :)
 
 ## Gotchas for Rust + S2I
