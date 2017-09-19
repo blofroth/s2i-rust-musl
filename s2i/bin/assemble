@@ -1,0 +1,61 @@
+#!/bin/bash -e
+#
+# S2I assemble script for the 'ekidd/rust-musl-builder' image.
+# The 'assemble' script builds your application source so that it is ready to run.
+#
+# For more information refer to the documentation:
+#	https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md
+#
+
+# If the 'ekidd/rust-musl-builder' assemble script is executed with the '-h' flag, print the usage.
+if [[ "$1" == "-h" ]]; then
+	exec /usr/libexec/s2i/usage
+fi
+
+if [[ -n "${RUNTIME_IMAGE_COPY}" ]]; then
+  echo "Aborting building since we are in runtime image copy mode"
+  exit 0
+fi
+
+CARGO_HOME="/home/rust/.cargo"
+TARGET_DIR="/home/rust/src/target"
+# Restore artifacts from the previous build (if they exist).
+#
+if [ "$(ls -la /tmp/artifacts/ 2>/dev/null)" ]; then
+  echo "---> Restoring build artifacts..."
+  CARGO_CACHE_DIR=${CARGO_HOME}/registry
+  CARGO_BASENAME=`basename ${CARGO_CACHE_DIR}`
+  TARGET_BASENAME=`basename ${TARGET_DIR}`
+  ls -la /tmp/artifacts
+  #tar -xf /tmp/artifacts/with-git.tar -C /tmp/artifacts
+  rm -rf "${CARGO_CACHE_DIR}"
+  mv "/tmp/artifacts/${CARGO_BASENAME}" "${CARGO_CACHE_DIR}"
+  rm -rf "${TARGET_DIR}"
+  mv "/tmp/artifacts/${TARGET_BASENAME}" "${TARGET_DIR}"
+fi
+
+echo "---> Installing application source..."
+cp -Rf /tmp/src/. ./
+
+
+echo "---> Checkin cargo state..."
+echo "home: ${HOME}"
+echo "cargo home: ${CARGO_HOME}"
+echo ".cargo size:"
+du -hs ${CARGO_HOME}/*
+echo ".cargo #files:"
+find ${CARGO_HOME} -type f | wc -l
+#find ${CARGO_HOME}/registry -maxdepth 3  -type d | xargs -n1 du -hs
+
+echo "---> Checkin target state..."
+echo "target size:"
+du -hs ${TARGET_DIR}
+echo "target #files:"
+find ${TARGET_DIR} -type f | wc -l
+
+echo "---> Checking toolchains..."
+cargo version
+rustc -V
+
+echo "---> Building application from source..."
+cargo build --locked --release

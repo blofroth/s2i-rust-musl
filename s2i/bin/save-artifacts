@@ -1,0 +1,20 @@
+#!/bin/sh -e
+#
+# S2I save-artifacts script for the 'ekidd/rust-musl-builder' image.
+# The save-artifacts script streams a tar archive to standard output.
+# The archive contains the files and folders you want to re-use in the next build.
+#
+# For more information see the documentation:
+#	https://github.com/openshift/source-to-image/blob/master/docs/builder_image.md
+#
+# tar cf - <list of files and folders>
+CARGO_HOME=/home/rust/.cargo
+CARGO_CACHE_DIR=${CARGO_HOME}/registry
+CARGO_BASENAME=`basename ${CARGO_CACHE_DIR}`
+CARGO_PARENT=`dirname ${CARGO_CACHE_DIR}`
+TARGET_DIR="/home/rust/src/target"
+TARGET_BASENAME=`basename ${TARGET_DIR}`
+TARGET_PARENT=`dirname ${TARGET_DIR}`
+TARGET_BASENAME=`basename ${TARGET_DIR}`
+
+tar cf - -C "${CARGO_PARENT}" "${CARGO_BASENAME}" -C "${TARGET_PARENT}" "${TARGET_BASENAME}"

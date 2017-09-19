@@ -1,0 +1,9 @@
+FROM blofroth/rust-s2i-musl-builder
+
+USER root
+ADD .cargo/registry /home/rust/.cargo/registry
+
+USER rust
+RUN mkdir -p /home/rust/src/target
+RUN touch /home/rust/src/target/dummy
+
