@@ -1,4 +1,4 @@
-FROM blofroth/rust-s2i-musl-builder
+FROM blofroth/s2i-rust-musl
 
 USER root
 ADD .cargo/registry /home/rust/.cargo/registry

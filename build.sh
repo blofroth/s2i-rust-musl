@@ -5,7 +5,7 @@ TOOLCHAIN=${3:-stable}
 ALPINE_VERSION=${4:-latest}
 
 s2i build ${SOURCE} \
-  "blofroth/rust-s2i-musl-builder:${TOOLCHAIN}" \
+  "blofroth/s2i-rust-musl:${TOOLCHAIN}" \
   -e "RUST_BINARY=${BINARY_NAME}" \
   --exclude "" \
   --incremental \

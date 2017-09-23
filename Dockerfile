@@ -1,5 +1,5 @@
 
-ARG TOOLCHAIN=stable
+ARG TOOLCHAIN=nightly
 FROM ekidd/rust-musl-builder:${TOOLCHAIN}
 
 MAINTAINER Björn Löfroth <bjorn.lofroth@gmail.com>

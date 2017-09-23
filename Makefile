@@ -1,5 +1,5 @@
 
-IMAGE_NAME = blofroth/rust-s2i-musl-builder
+IMAGE_NAME = blofroth/s2i-rust-musl
 TOOLCHAIN := stable
 
 .PHONY: build
