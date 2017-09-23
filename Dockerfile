@@ -12,6 +12,14 @@ LABEL io.k8s.description="Platform for building Rust Applications" \
 
 COPY ./s2i/bin/ /usr/libexec/s2i
 
-USER rust
+# to 'Support Arbitrary User IDs'
+# https://docs.openshift.org/latest/creating_images/guidelines.html#openshift-specific-guidelines
+USER root
+RUN chgrp -R 0 /home/rust /usr/libexec/s2i && \
+    chmod -R g=u /home/rust /usr/libexec/s2i
+
+# unsure, according to documentation in parent image, this should be 
+# the uid of the rust user
+USER 1000
 
 CMD ["/usr/libexec/s2i/usage"]
