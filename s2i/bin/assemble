@@ -48,6 +48,7 @@ find ${CARGO_HOME} -type f | wc -l
 #find ${CARGO_HOME}/registry -maxdepth 3  -type d | xargs -n1 du -hs
 
 echo "---> Checkin target state..."
+mkdir -p ${TARGET_DIR}
 echo "target size:"
 du -hs ${TARGET_DIR}
 echo "target #files:"
