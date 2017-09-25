@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ImageStream
+metadata:
+  name: alpine
+  annotations:
+    openshift.io/display-name: Alpine Linux
+spec:
+  tags:
+    - name: 'latest' 
+      annotations:
+        openshift.io/display-name: Alptine Linux
+        version: 'latest'
+      from:
+        kind: DockerImage
+        name: 'alpine:latest'

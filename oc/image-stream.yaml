@@ -1,0 +1,21 @@
+apiVersion: v1
+kind: ImageStream
+metadata:
+  name: rust-musl
+  annotations:
+    openshift.io/display-name: Rust Musl Builder 
+spec:
+  tags:
+    - name: '1.0' 
+      annotations:
+        openshift.io/display-name: Rust 
+        description: >- 
+          Build Rust applications
+        sampleRepo: 'https://github.com/blofroth/pipedream' 
+        tags: 'builder,rust' 
+        iconClass: fa-cog
+        version: '1.0' 
+        supports: "rust"
+      from:
+        kind: DockerImage
+        name: 'blofroth/s2i-rust-musl:latest'
