@@ -73,8 +73,15 @@ Simply:
  * Make cargo options more configurable
  * See if the incremental workflow can be improved
  * See if there are any best practices for the runtime image that we should adapt to
- * Provide an example project with some microservices based on Rocket.rs
-and deployable in OpenShift. Stay tuned... :)
+
+# OpenShift template
+
+See the [OpenShift instructions](openshift.md). 
+
+# Example project
+
+See the [Pipedream project](https://github.com/blofroth/pipedream). Should work well to deploy 
+with the OpenShift template above. 
 
 ## Gotchas for Rust + S2I
 From the help documentation of `s2i`:

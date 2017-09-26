@@ -1,0 +1,233 @@
+apiVersion: v1
+kind: Template
+metadata:
+  name: rust-musl-app
+  annotations: 
+    description: >-
+      A template for a Rust application in OpenShift. The Rust project is built with 'cargo' in
+      a specified Rust toolchain as a statically linked Musl binary, and the produced binary
+      is added to an Alpine Linux image.
+
+      Creates an incremental build pipeline, a deployment, a service and a route to expose the service.
+
+      You might need to edit the deployment after creation to set appropriate ENV parameters 
+      for your application.
+    iconClass: "fa fa-cog"
+    tags: "rust,example"
+parameters:
+- name: APP_NAME
+  displayName: Application name
+  description: Name of application (used for OC services, builds, streams, etc.)
+  value: pipedream
+- name: GIT_URI
+  displayName: Git Uri
+  value: https://github.com/blofroth/pipedream
+- name: GIT_REF
+  displayName: Git Reference
+  value: master
+- name: RUST_TOOLCHAIN_VERSION
+  displayName: Version of Rust toolchain 
+  description: >-
+    One of stable|beta|nightly|nightly-YYYY-MM-DD. 
+    Corresponds to tags of 'blofroth/s2i-rust-musl'.
+  value: latest
+- name: RUST_BINARY_NAME
+  displayName: Rust binary name 
+  description: >-
+    The name of the binary produced by the cargo build. 
+    It is copied to the runtime image, and will be pointed to by the
+    CMD used for image.
+  value: pipedream
+- name: ALPINE_VERSION
+  displayName: Alpine Linux version
+  description: Alpine Linux image tag to use for the runtime image
+  value: latest
+- name: CONTAINER_PORT
+  displayName: Container port
+  description: Port to expose on the runtime container
+  value: "8000"
+
+objects:
+# s2i builder image
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: rust-musl
+    annotations:
+      openshift.io/display-name: Rust Musl Builder 
+  spec:
+    tags:
+      - name: ${RUST_TOOLCHAIN_VERSION} 
+        annotations:
+          openshift.io/display-name: "Rust ${RUST_TOOLCHAIN_VERSION}" 
+          description: >- 
+            Build Rust applications
+          sampleRepo: 'https://github.com/blofroth/pipedream' 
+          tags: 'builder,rust' 
+          iconClass: "fa fa-cog"
+          version: ${RUST_TOOLCHAIN_VERSION}
+          supports: "rust"
+        from:
+          kind: DockerImage
+          name: "blofroth/s2i-rust-musl:${RUST_TOOLCHAIN_VERSION}"
+
+# runtime image
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    name: alpine
+    annotations:
+      openshift.io/display-name: Alpine Linux
+  spec:
+    tags:
+      - name: "${ALPINE_VERSION}" 
+        annotations:
+          openshift.io/display-name: Alpine Linux
+          version: "${ALPINE_VERSION}"
+          iconClass: "fa fa-tree"
+        from:
+          kind: DockerImage
+          name: "alpine:${ALPINE_VERSION}"
+
+# incremental builder image (caches build artifacts between builds)
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      description: "${APP_NAME} build artifacts"
+    name: "${APP_NAME}-artifact"
+
+# runtime image
+- apiVersion: v1
+  kind: ImageStream
+  metadata:
+    annotations:
+      description: "${APP_NAME} runtime image"
+    name: ${APP_NAME}
+
+# build to create artifacts
+- kind: "BuildConfig"
+  apiVersion: "v1"
+  metadata:
+    name: "${APP_NAME}-artifact-build"
+  spec:
+    source: 
+      type: "Git"
+      git:
+        uri: ${GIT_URI}
+        ref: ${GIT_REF}
+    strategy:
+      type: "Source"
+      sourceStrategy:
+        from:
+          kind: "ImageStreamTag"
+          name: "rust-musl:${RUST_TOOLCHAIN_VERSION}" 
+        incremental: true
+    output: 
+      to:
+        kind: "ImageStreamTag"
+        name: "${APP_NAME}-artifact:latest"
+    postCommit: 
+        script: "cargo test --release"
+
+# build to create the runtime image
+- kind: "BuildConfig"
+  apiVersion: "v1"
+  metadata:
+    name: "${APP_NAME}-runtime-build" 
+  spec:
+    triggers:
+      - type: ImageChange
+        imageChange:
+          from:
+            kind: ImageStreamTag
+            name: "${APP_NAME}-artifact:latest"    
+    source: 
+      images: 
+        - from: 
+            kind: ImageStreamTag
+            name: "${APP_NAME}-artifact:latest"
+          paths: 
+          - destinationDir: rust/ 
+            sourcePath: "/home/rust/src/target/x86_64-unknown-linux-musl/release/${RUST_BINARY_NAME}"
+      dockerfile: "FROM alpine:latest\nADD rust/${RUST_BINARY_NAME} /rust/${RUST_BINARY_NAME}\nCMD /rust/${RUST_BINARY_NAME}"
+    strategy:
+      dockerStrategy:
+        from:
+          kind: "ImageStreamTag"
+          name: "alpine:${ALPINE_VERSION}"
+    output: 
+      to:
+        kind: "ImageStreamTag"
+        name: "${APP_NAME}:latest"
+
+# deployment of the runtime image in two replicas
+- kind: "DeploymentConfig"
+  apiVersion: "v1"
+  metadata:
+    name: "${APP_NAME}-deployment"
+  spec:
+    template: 
+      metadata:
+        labels:
+          app: "${APP_NAME}"
+          name: "${APP_NAME}"
+      spec:
+        containers:
+          - name: "${APP_NAME}"
+            image: "${APP_NAME}:latest"
+            ports:
+              - containerPort: "${{CONTAINER_PORT}}"
+                protocol: "TCP"
+            #env: 
+            #- name: ROCKET_ENV
+            #  value: "stage"
+            #- name: ROCKET_PORT
+            #  value: "8000"
+            #livenessProbe:
+            #  httpGet:
+            #    path: /
+            #    port: "${CONTAINER_PORT}"
+            #    scheme: HTTP
+    replicas: 2
+    selector:
+      name: "${APP_NAME}"
+    triggers:
+      - type: "ConfigChange" 
+      - type: "ImageChange" 
+        imageChangeParams:
+          containerNames:
+            - "${APP_NAME}"
+          from:
+            kind: "ImageStreamTag"
+            name: "${APP_NAME}:latest"
+    strategy: 
+      type: "Rolling"
+
+# service that wraps the deployment
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ${APP_NAME}  
+    name: ${APP_NAME}
+  spec:
+    selector:
+      app: ${APP_NAME}
+    ports:
+    - nodePort: 0
+      port: "${{CONTAINER_PORT}}"
+      protocol: TCP
+      targetPort: "${{CONTAINER_PORT}}"
+
+# route that exposes the service from the OC cluster
+# TODO: better handling of exposed ports and URL paths?
+- apiVersion: v1
+  kind: Route
+  metadata:
+    name: ${APP_NAME}
+  spec:
+    host: localhost
+    to:
+      kind: Service
+      name: ${APP_NAME}

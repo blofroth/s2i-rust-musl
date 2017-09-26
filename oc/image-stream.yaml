@@ -13,7 +13,7 @@ spec:
           Build Rust applications
         sampleRepo: 'https://github.com/blofroth/pipedream' 
         tags: 'builder,rust' 
-        iconClass: fa-cog
+        iconClass: "fa fa-cog"
         version: '1.0' 
         supports: "rust"
       from:
